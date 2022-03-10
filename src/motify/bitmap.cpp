@@ -39,9 +39,9 @@ typedef struct NODE
 int main() {        
     BitMap BM(64);
     BM.Set(1);
-    cout<<BM.Test(2)<<endl;
-    BM.Set(2);
-    cout<<BM.Test(2)<<endl;
+    cout<<BM.Test(1)<<endl;
+    BM.Reset(1);
+    cout<<BM.Test(1)<<endl;
 
-    cout<<sizeof(int)<<endl;
+    // cout<<sizeof(int)<<endl;
 }
