@@ -9,7 +9,7 @@
 
 using namespace std;
 
-#define HASH_TABLE_MAX_SIZE 10000
+#define HASH_TABLE_MAX_SIZE 1000
 typedef struct HashNode_Struct HashNode;  
 struct HashNode_Struct  {  
     int sKey;  
@@ -56,15 +56,15 @@ void hash_table_insert(int skey, int nvalue)
   //用于解决冲突，pos为哈希函数 
     HashNode* pHead = hashTable[pos];
     //不用仅追加，否则得单独涉及GC
-    while(pHead)
-    {  
-        if(pHead->sKey == skey)
-        {  
-            pHead->nValue = nvalue;
-            return ;  
-        }  
-        pHead = pHead->pNext;  
-    }  
+    // while(pHead)
+    // {  
+    //     if(pHead->sKey == skey)
+    //     {  
+    //         pHead->nValue = nvalue;
+    //         return ;  
+    //     }  
+    //     pHead = pHead->pNext;  
+    // }  
     //动态建立结点，初始化，分配内存空间 
     HashNode* pNewNode = (HashNode*)malloc(sizeof(HashNode));  
     memset(pNewNode, 0, sizeof(HashNode)); 
@@ -216,9 +216,6 @@ int main(int argc, char** argv)
     hash_table_init();     
     int n = 10;  
 
-    LARGE_INTEGER t1,t2,tc;
-    QueryPerformanceFrequency(&tc);
-    QueryPerformanceCounter(&t1);
 
     // for(int i = 0; i < 100000; i++)
     // {
@@ -226,14 +223,17 @@ int main(int argc, char** argv)
     // }
     ifstream insert_data("./data.txt", ios::in);
     int x, y;
+    LARGE_INTEGER t11, t21, tc1;
+    QueryPerformanceFrequency(&tc1);
+    QueryPerformanceCounter(&t11);
     while (insert_data >> x >> y)
     {
         hash_table_insert(x, y);
     }
 
-    QueryPerformanceCounter(&t2);
-    double time=(double)(t2.QuadPart-t1.QuadPart)/(double)tc.QuadPart; 
-    cout<<"time = "<<time<<"s"<<endl;  //输出时间（单位：ｓ）
+   QueryPerformanceCounter(&t21);
+    double time1 = (double)(t21.QuadPart - t11.QuadPart) / (double)tc1.QuadPart;
+    cout << "time = " << time1 << "" << endl; //输出时间（单位：
     
     // while(n--)  
     // {  
@@ -247,31 +247,28 @@ int main(int argc, char** argv)
     // printf("\nAftet Insert\n\n");
     // hash_table_print();  
 
-    
-    // LARGE_INTEGER t1,t2,tc;
-    // QueryPerformanceFrequency(&tc);
-    // QueryPerformanceCounter(&t1);
-
-    // HashNode* res = hash_table_lookup(9735709);
-    // if (res == NULL)
-    // {
-    //     cout << "NOT FIND" << endl;
-    // }
-    // else
-    // {
-    //     cout << res->sKey << " " << res->nValue << endl;
-    // }
-
-    // int sum = 0;
-    // hash_table_scan(100, 10000000, sum);
-    // hash_table_scan(100, 10000000, sum);
-    // hash_table_scan(100, 10000000, sum);
-    // hash_table_scan(100, 10000000, sum);
-    // cout << sum <<endl;
-    // QueryPerformanceCounter(&t2);
-    // double time=(double)(t2.QuadPart-t1.QuadPart)/(double)tc.QuadPart; 
-    // cout<<"time = "<<time<<"s"<<endl;  //输出时间（单位：ｓ）
-
+       int sum = 0;
+    LARGE_INTEGER t1,t2,tc;
+    QueryPerformanceFrequency(&tc);
+    QueryPerformanceCounter(&t1);
+ 
+    hash_table_scan(1,1000, sum);
+    hash_table_scan(1000,2000, sum);
+    hash_table_scan(2000,3000, sum);
+    hash_table_scan(3000,4000, sum);
+    hash_table_scan(4000,5000, sum);
+    hash_table_scan(1,5000, sum);
+    hash_table_scan(1,1000, sum);
+    hash_table_scan(1000,2000, sum);
+    hash_table_scan(2000,3000, sum);
+    hash_table_scan(3000,4000, sum);
+    hash_table_scan(4000,5000, sum);
+    hash_table_scan(1,5000, sum);
+   
+    QueryPerformanceCounter(&t2);
+    double time=(double)(t2.QuadPart-t1.QuadPart)/(double)tc.QuadPart; 
+    cout<<"time = "<<time<<""<<endl;  //输出时间（单位：ｓ）
+    cout << sum <<endl;
     // HashNode* pNode = hash_table_lookup(key1);  
     // printf("\nQuery Result:%d\n\n", pNode->nValue);  
     // pNode = hash_table_lookup(key2);  

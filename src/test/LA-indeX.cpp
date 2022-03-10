@@ -11,16 +11,12 @@
 // #include "LA-index.hpp"
 // #include "bitmap.hpp"
 
-#define BMPS 64
-#define HASH_MAX 128
+#define BMPS 32
 #define BUCKET_1_NUM 128
 #define BUCKET_2_NUM BUCKET_1_NUM/BMPS
 #define NODE_NUM 64
 #define MAX 0x3f3f3f3f
 #define MIN -0x3f3f3f3f
-
-
-//TODO: CURVE for INSERT
 
 using namespace std;
 
@@ -74,7 +70,8 @@ struct BUCKET_2_struct {
     int max;
     BUCKET_2 *next;
     bool split_flag;
-    BitMap *BM;
+    bool *BM;
+    int blen = 0;
     NODE *node_entry;
 };
 
@@ -124,7 +121,7 @@ void split(BUCKET_2 *B2) {
     BUCKET_2 *NEW_B2S;
     NEW_B2S = (BUCKET_2 *)malloc(sizeof(BUCKET_2));
     NEW_B2S->node_entry = (NODE *)malloc(sizeof(NODE)*BMPS);
-    NEW_B2S->BM = new BitMap(BMPS);
+    NEW_B2S->BM = (bool*)malloc(sizeof(bool)*BMPS);
     int j = 0;
     for(int i = 0; i < BMPS; i++) {
             // cout<<1<<endl;
@@ -133,10 +130,12 @@ void split(BUCKET_2 *B2) {
             NEW_B2S->node_entry[j].skey = B2->node_entry[i].skey;
             NEW_B2S->node_entry[j].nvalue = B2->node_entry[i].nvalue;//cout<<1<<endl;
             // cout<<"NEW_B2S:"<<NEW_B2S->BM->Test(j)<<endl;
-            NEW_B2S->BM->Set(j);//cout<<2<<endl;
+            NEW_B2S->BM[j]=1;//cout<<2<<endl;
+            NEW_B2S->blen++;
             // cout<<"NEW_B2S:"<<NEW_B2S->BM->Test(j)<<endl;
             // cout<<"B2:"<<B2->BM->Test(i)<<endl;
-            B2->BM->Reset(i);
+            B2->BM[i]=0;
+            B2->blen--;
             // cout<<"B2:"<<B2->BM->Test(i)<<endl;
             j++;
         }
@@ -173,10 +172,11 @@ void insert_first(int key, int value) {
 
         NEW_B2->node_entry[0].skey = key;
         NEW_B2->node_entry[0].nvalue = value;
-        NEW_B2->BM = new BitMap(BMPS);
+        NEW_B2->BM = (bool*)malloc(sizeof(bool));
         // cout<<"end"<<endl;
         // cout<<NEW_B2->BM.Test(0);
-        NEW_B2->BM->Set(0);
+        NEW_B2->BM[0]=1;
+        NEW_B2->blen++;
         // cout<<NEW_B2->BM.Test(0);
         NEW_B2->split_flag = 0;
         NEW_B2->next = NULL;
@@ -193,19 +193,20 @@ void insert_first(int key, int value) {
     if (!B2->split_flag){
         // cout<<"in1"<<endl;
         for (int i = 0; i < BMPS; i++) {
-            if (!B2->BM->Test(i)) {
+            if (!B2->BM[i]) {
                 // cout<<B2->BM->Test(i)<<endl;
                 // cout<<B2->node_entry[i].skey<<endl;
                 B2->node_entry[i].skey = key;
                 B2->node_entry[i].nvalue = value;
                 // cout<<"in2"<<endl;
-                B2->BM->Set(i);
+                B2->BM[i]=1;
+                B2->blen++;
                 
                 B2->max = (key>B2->max)?key:B2->max;
                 B2->min = (key<B2->min)?key:B2->min;
                 // cout<<B2->min<<" "<<B2->max<<endl;
                 // cout<<"Getlen():"<<B2->BM->Getlen()<<endl;
-                if (B2->BM->Getlen() == BMPS){
+                if (B2->blen == BMPS){
                     // cout<<"1:"<<key<<endl;
                     split(B2);
                     B1_Table[B1_pos].len++;
@@ -232,15 +233,16 @@ void insert_first(int key, int value) {
             // cout<<B2->min<<" "<<B2->max<<" "<<key<<endl;
             if ((B2->min <= key && key <= B2->max) || (B2->next == NULL)){
                 for (int i = 0; i < BMPS; i++) {
-                    if (!B2->BM->Test(i)) {
+                    if (!B2->BM[i]) {
                         // cout<<"insert"<<endl;
                         B2->node_entry[i].skey = key;
                         B2->node_entry[i].nvalue = value;
-                        B2->BM->Set(i);
+                        B2->BM[i]=1;
+                        B2->blen++;
                         B2->max = (key>B2->max)?key:B2->max;
                         B2->min = (key<B2->min)?key:B2->min;
                         // cout<<B2->min<<" "<<B2->max<<endl;
-                        if (B2->BM->Getlen() == BMPS){
+                        if (B2->blen == BMPS){
                             // cout<<"in split"<<endl;
                             // cout<<"2:"<<key<<endl;
                             split(B2);
@@ -314,7 +316,7 @@ void query_test() {
         // cout<<"head"<<head<<endl;
         while (head) {
            for (int j = 0; j < BMPS; j++) {
-               if (head->BM->_bits[i>>5]&(1<<(i&31))) {
+               if (head->BM[j] == 1) {
                    printf("%d\n", head->node_entry[j].skey);
                    sum++;
                }
@@ -327,7 +329,7 @@ void query_test() {
 }
 void release() {
     // cout << 1 << endl;
-    for (int i = 0; i < BUCKET_1_NUM; i++) {
+    for (int i = 0; i <= BUCKET_1_NUM; i++) {
         BUCKET_2 *head = B1_Table[i].B2_head;
         while (head) {
            BUCKET_2 *temp = head;
@@ -358,7 +360,7 @@ void query(int key) {
         if (head->min <= key && key <= head->max) {
             // cout<<"if:"<<head<<endl;
             for (int i = 0; i < BMPS; i++) {
-                if (head->node_entry[i].skey == key && head->BM->Test(i)) {
+                if (head->node_entry[i].skey == key && head->BM[i]) {
                     printf("FIND KEK:%d, VALUE:%d\n", key, head->node_entry[i].nvalue);
                     return;
                 }
@@ -399,7 +401,7 @@ void range_query(int start, int end, int &sum){
     // cout<<head_start<<" "<<head_end<<endl;
     // cout<<1<<endl;
     for(int i = 0 ; i < BMPS; i++) 
-        if (head_start->BM->_bits[i>>5]&(1<<(i&31)) && start <= head_start->node_entry[i].skey){
+        if (head_start->BM[i] && start <= head_start->node_entry[i].skey){
             // printf("FIND:KEY %d, VALUE %d\n", head_start->node_entry[i].skey, head_start->node_entry[i].nvalue); 
             sum++;
         }
@@ -416,7 +418,7 @@ void range_query(int start, int end, int &sum){
             continue;
         }
         for(int i = 0 ; i < BMPS; i++){
-            if (head_start->BM->_bits[i>>5]&(1<<(i&31))){
+            if (head_start->BM[i]){
                 // printf("FIND:KEY %d, VALUE %d\n", head_start->node_entry[i].skey, head_start->node_entry[i].nvalue); 
                 sum++;
             }
@@ -433,7 +435,7 @@ void range_query(int start, int end, int &sum){
     while (head_start != head_end){
         for(int i = 0 ; i < BMPS; i++){
             // cout<<"test"<<head_start->BM->Test(i)<<endl;
-            if (head_start->BM->_bits[i>>5]&(1<<(i&31))){
+            if (head_start->BM[i]){
                 // printf("FIND:KEY %d, VALUE %d\n", head_start->node_entry[i].skey, head_start->node_entry[i].nvalue); 
                 sum++;
             }
@@ -445,8 +447,8 @@ void range_query(int start, int end, int &sum){
     
     while (head_end) {
         // cout<<"in4 "<<head_end->BM<<endl;
-        BitMap *BM;
-        BM = new BitMap(BMPS);
+        bool *BM;
+        BM = (bool*)malloc(sizeof(bool)*BMPS);
         BM = head_end->BM;
 
         NODE *node;
@@ -455,7 +457,7 @@ void range_query(int start, int end, int &sum){
         for(int i = 0 ; i < BMPS; i++) {
             // cout<<BM<<endl;
             // cout<<"Test:"<<BM->Test(i)<<" key:"<<node[i].skey<<endl;
-            if (head_start->BM->_bits[i>>5]&(1<<(i&31)) && node[i].skey != 0 && node[i].skey <= end) {
+            if (head_start->BM[i] && node[i].skey != 0 && node[i].skey <= end) {
                 // printf("FIND:KEY %d, VALUE %d\n", node[i].skey, node[i].nvalue); 
                 sum++;
             }
@@ -476,39 +478,22 @@ int main () {
     cout<<endl;    
     ifstream insert_data("./data.txt", ios::in);
     int x, y;
-    LARGE_INTEGER t11, t21, tc1;
-    QueryPerformanceFrequency(&tc1);
-    QueryPerformanceCounter(&t11);
     while (insert_data >> x >> y)
         insert_first(x, y);
+
     // cout<<"xxx"<<endl; 
     build_curve();
-    QueryPerformanceCounter(&t21);
-    double time1 = (double)(t21.QuadPart - t11.QuadPart) / (double)tc1.QuadPart;
-    cout << "time = " << time1 << "" << endl; //输出时间（单位：
     // query_test();
     int sum = 0;
     LARGE_INTEGER t1, t2, tc;
     QueryPerformanceFrequency(&tc);
     QueryPerformanceCounter(&t1);
 
-    range_query(1,1000, sum);
-    range_query(1000,2000, sum);
-    range_query(2000,3000, sum);
-    range_query(3000,4000, sum);
-    range_query(4000,5000, sum);
-    range_query(1,5000, sum);
-    range_query(1,1000, sum);
-    range_query(1000,2000, sum);
-    range_query(2000,3000, sum);
-    range_query(3000,4000, sum);
-    range_query(4000,5000, sum);
-    range_query(1,5000, sum);
-    // range_query(1,5000, sum);
+    range_query(1,1000,sum);
 
     QueryPerformanceCounter(&t2);
     double time = (double)(t2.QuadPart - t1.QuadPart) / (double)tc.QuadPart;
-    cout << "time = " << time << "" << endl; //输出时间（单位：
+    cout << "time = " << time << "s" << endl; //输出时间（单位：
     cout << "sum = " << sum << endl; 
     // cout<<endl;
 
