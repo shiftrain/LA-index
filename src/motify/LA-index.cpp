@@ -12,7 +12,7 @@
 // #include "bitmap.hpp"
 
 #define BMPS 8
-#define BUCKET_1_NUM 32
+#define BUCKET_1_NUM 64
 #define BUCKET_2_NUM BUCKET_1_NUM/BMPS
 #define NODE_NUM 64
 #define MAX 0x3f3f3f3f
@@ -261,7 +261,7 @@ void build_curve() {
 
 }
 
-int binary_search(int pos, int key, int &res) {
+int binary_search(int pos, int key) {
     int left = 0;
     int right = B1_Table[pos].len - 1;
     // cout<<left<<"<->"<<right<<endl;
@@ -278,11 +278,9 @@ int binary_search(int pos, int key, int &res) {
         else if (mint < key)
             left = middle + 1;
         else {
-            res = 1;
             return middle;
         }
     }
-    res = -1;
     return middle;
 }
 
@@ -316,27 +314,19 @@ void release() {
 
 void query(int key) {
     int B1_pos = hash_func(key);
-    // cout<<"B1_pos "<<B1_pos<<endl;
-    int res;
-    int target = binary_search(B1_pos, key, res);
-    // cout<<"target "<<target<<" "<<res<<endl;
+    int target = binary_search(B1_pos, key);
     int mint = arr[B1_pos][target].min;
-    // cout<<"key"<<key<<"mint"<<mint<<endl;
-    // cout<<1<<endl;
     if (target == 0 && key < mint) {
         printf("1,CANNOT FIND KEK:%d\n", key);
         return;
     }
     else if(key < mint)
         target--;
-
-    // cout<<"target2 "<<target<<" "<<endl;
-    // cout<<1<<endl;
     BUCKET_2 *head = arr[B1_pos][target].LINK;
     while (head) {
-        if (head->min <= key && key <= head->max){
+        if (head->min <= key && key <= head->max) {
             for (int i = 0; i < BMPS; i++) {
-                if (head->node_entry[i].skey == key){
+                if (head->node_entry[i].skey == key) {
                     printf("FIND KEK:%d, VALUE:%d\n", key, head->node_entry[i].nvalue);
                     return;
                 }
@@ -349,7 +339,54 @@ void query(int key) {
         else
             head = head->next;
     }
+}
 
+void range_query(int start, int end){
+    int pos_start = hash_func(start);
+    int target_start = binary_search(pos_start, start);
+    int mint_start = arr[pos_start][target_start].min;
+    if(start < mint_start && target_start != 0)
+        target_start--;
+    int pos_end = hash_func(end);
+    int target_end = binary_search(pos_end, end);
+    int mint_end = arr[pos_end][target_end].min;
+    if(end < mint_end && target_end != 0)
+        target_end--;
+
+    cout<<pos_start<<" "<<target_start<<endl;
+    cout<<pos_end<<" "<<target_end<<endl;
+
+    BUCKET_2 *head_start = arr[pos_start][target_start].LINK;
+    BUCKET_2 *head_end = arr[pos_end][target_end].LINK;
+    cout<<1<<endl;
+    for(int i = 0 ; i < BMPS; i++) 
+        if (head_start->BM->Test(i) && start <= head_start->node_entry[i].skey) 
+            printf("FIND:KEY %d, VALUE %d\n", head_start->node_entry[i].skey, head_start->node_entry[i].nvalue); 
+    head_start = head_start->next;
+    cout<<2<<endl;
+    while (pos_start!=pos_end && target_start!=target_end) {
+        // cout<<head_start<<" "<<head_end<<endl;
+        if(!head_start){
+            head_start = B1_Table[++pos_start].B2_head;
+            target_start = 0;
+            continue;
+        }
+        for(int i = 0 ; i < BMPS; i++)
+            if (head_start->BM->Test(i))
+                printf("FIND:KEY %d, VALUE %d\n", head_start->node_entry[i].skey, head_start->node_entry[i].nvalue); 
+        // cout<<"endfor"<<endl;
+        head_start = head_start->next; 
+        // cout<<"endnext"<<endl;
+    }
+    cout<<3<<endl;
+    while(true) {
+        for(int i = 0 ; i < BMPS; i++) {
+            if (head_end->BM->Test(i) && head_end->node_entry[i].skey <= end) 
+                printf("FIND:KEY %d, VALUE %d\n", head_end->node_entry[i].skey, head_end->node_entry[i].nvalue); 
+            else 
+                return ;
+        }
+    }
 }
 
 
@@ -362,30 +399,27 @@ int main () {
     // cout<<B1_Table[hash_func(2000)].B2_head->node_entry[0].skey<<endl;
     // cout<<B1_Table[hash_func(2000)].B2_head->node_entry[0].nvalue<<endl;
     cout<<endl;    
-    insert_first(1, 532);
-    insert_first(2, 5213);
-    insert_first(3, 15);
-    insert_first(4, 534);
-    insert_first(5, 15);
-    insert_first(6, 1);
-    insert_first(7, 32);
-    insert_first(8, 43);
-    insert_first(219, 546);
-    insert_first(229, 65);
-    insert_first(49, 5);
-    insert_first(91, 767);
-    insert_first(23, 22);
-    insert_first(39, 11);
-    insert_first(13, 33);
-    insert_first(55, 22);
+
+    ifstream insert_data("./data.txt", ios::in);
+    int x, y;
+    while (insert_data >> x >> y)
+        insert_first(x, y);
 
 
     build_curve();
     // query_test();
 
     cout<<endl;
-    query(39);
 
+    LARGE_INTEGER t1, t2, tc;
+    QueryPerformanceFrequency(&tc);
+    QueryPerformanceCounter(&t1);
+
+    range_query(1,400);
+
+    QueryPerformanceCounter(&t2);
+    double time = (double)(t2.QuadPart - t1.QuadPart) / (double)tc.QuadPart;
+    cout << "time = " << time << "s" << endl; //输出时间（单位：
     // cout<<endl;
     // cout<<B1_Table[0].B2_head->BM->llen<<endl;
     // cout<<"min:"<<arr[0][0].min<<endl;

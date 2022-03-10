@@ -38,7 +38,11 @@ int binary_search(int a[], int target)
 
 int main()
 {
-    int a[10] = {0,10,20,30,40,50,60,70,80,90};
-    int x,y = binary_search(a,33);
-    cout << x << " " << y <<endl;
+    // int a[10] = {0,10,20,30,40,50,60,70,80,90};
+    // int x,y = binary_search(a,33);
+    // cout << x << " " << y <<endl;
+    int a = 100;
+    int *p1 = &a;
+    int *p2 = &a;
+    cout<<p1<<" "<<p2<<endl;
 }
