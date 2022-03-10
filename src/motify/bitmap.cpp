@@ -42,6 +42,9 @@ int main() {
     cout<<BM.Test(1)<<endl;
     BM.Reset(1);
     cout<<BM.Test(1)<<endl;
-
+    BM.Set(1);
+    cout<<BM.Test(1)<<endl;
+    BM.Reset(1);
+    cout<<BM.Test(1)<<endl;
     // cout<<sizeof(int)<<endl;
 }
