@@ -12,10 +12,9 @@
 // #include "bitmap.hpp"
 
 #define BMPS 32
-#define HASH_MAX 128
-#define BUCKET_1_NUM 128
-#define BUCKET_2_NUM BUCKET_1_NUM/BMPS
-#define NODE_NUM 64
+#define BUCKET_1_NUM 1024
+#define BUCKET_2_NUM 2
+#define HASH_MODE BMPS*BUCKET_2_NUM
 #define MAX 0x3f3f3f3f
 #define MIN -0x3f3f3f3f
 
@@ -112,7 +111,7 @@ int hash_func(int key) {
     // cout<<"key "<<key<<endl;
     // cout<<"BUCKET_1_NUM "<<BUCKET_1_NUM<<endl;
     // cout<<"key / BUCKET_1_NUM "<<key / BUCKET_1_NUM<<endl;
-    return key / (BUCKET_1_NUM);
+    return key / HASH_MODE;
 }
 
 int binary_search(int pos, int key) {
